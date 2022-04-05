@@ -1,0 +1,13 @@
+# Environment app is running in (test, dev, prod)
+APP_ENV=development
+# API key for address validator service
+VALIDATOR_API_KEY=
+# Limit of allowed requests within time bounds
+RATE_LIMIT=
+# Seconds before rate limit resets
+RATE_LIMIT_SECONDS=
+# Redis connection
+REDIS_HOST=
+REDIS_PORT=
+REDIS_DB=
+REDIS_TIMEOUT=

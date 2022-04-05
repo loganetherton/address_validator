@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  validator:
+    build: .
+    container_name: validator
+
+  redis:
+    image: redis:alpine3.15
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis:/data
