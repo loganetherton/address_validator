@@ -1,9 +1,13 @@
 from os import getenv
+from pathlib import Path
 
 APP_ENV = getenv('APP_ENV', 'production')
 IS_TEST = APP_ENV == 'test'
 IS_DEV = APP_ENV == 'development'
 IS_PROD = APP_ENV == 'production'
+
+# Base directory for reading and writing CSVs
+BASE_DIR = Path.cwd() / getenv('CSV_DIR', 'csv' if not IS_TEST else 'test_csv')
 
 # Validator config
 BASE_URL = 'https://api.address-validator.net/api/verify'

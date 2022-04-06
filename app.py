@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import typer
 
 from config import EXPECTED_LINES, BASE_URL, INVALID_ADDRESS_RES, INVALID_INPUT_EXTENSION, MISSING_INPUT_FILE, \
-    RATE_LIMIT, RATE_LIMIT_SECONDS, IS_TEST, API_KEY
+    RATE_LIMIT, RATE_LIMIT_SECONDS, IS_TEST, API_KEY, BASE_DIR
 from cache import connect_redis, redis_get, redis_set
 
 redis = None
@@ -99,12 +99,26 @@ def get_file(filename: str) -> Path:
     :param filename: Filename str, relative to cwd
     :return: Path representing input CSV
     """
-    file = Path.cwd() / filename
-    if not file.exists() or not file.is_file():
-        raise Exception(MISSING_INPUT_FILE)
+    return BASE_DIR / filename
+
+
+def get_all_files(filename: str = '') -> list[Path]:
+    """
+    Get all files from CSV dir
+    :return: A list of Paths representing CSV files
+    """
+    file = get_file(filename)
     if file.suffix != '.csv':
         raise Exception(INVALID_INPUT_EXTENSION)
-    return file
+    files = []
+    for dir_file in BASE_DIR.iterdir():
+        if not filename or dir_file.name == filename:
+            files.append(get_file(dir_file.name))
+
+    if not len(files):
+        raise Exception(MISSING_INPUT_FILE)
+
+    return files
 
 
 def get_output_file(output_filename: str) -> Path:
@@ -113,7 +127,7 @@ def get_output_file(output_filename: str) -> Path:
     :param output_filename:
     :return:
     """
-    output_file = Path.cwd() / output_filename
+    output_file = BASE_DIR / output_filename
     if not output_file.exists():
         output_file.touch()
     return output_file
@@ -138,9 +152,8 @@ def handle_rate_limiting(is_rate_limited, rate_limit_remain: int, rate_limit_res
 
 
 @app.command()
-def validate(filename: str, output_filename: str = '', **kwargs):
+def validate(filename: str = '', output_filename: str = '', **kwargs):
     # Lazy import, probably wouldn't do this much in real life
-    from pathlib import Path
     import csv
     if IS_TEST:
         global redis
@@ -152,7 +165,7 @@ def validate(filename: str, output_filename: str = '', **kwargs):
     # Addresses validated (for testing)
     res = []
     # Make sure we're working with a good input file
-    file = get_file(filename)
+    files = get_all_files(filename)
     # CSV output file writer
     writer = None
 
@@ -175,7 +188,10 @@ def validate(filename: str, output_filename: str = '', **kwargs):
 
         return await aiogather(*lines)
 
-    validated_responses = aiorun(handle_lines(file, rl_remain, rl_reset))
+    validated_responses = []
+    for file in files:
+        responses = aiorun(handle_lines(file, rl_remain, rl_reset))
+        validated_responses += responses
 
     # Get output CSV if one is specified
     if output_filename:

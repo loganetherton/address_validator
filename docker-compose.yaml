@@ -4,6 +4,10 @@ services:
   validator:
     build: .
     container_name: validator
+    env_file:
+      .env
+    volumes:
+      - ./csv:/app/csv
 
   redis:
     image: redis:alpine3.15

@@ -58,7 +58,7 @@ def redis_get(key: str):
     :param key:
     :return:
     """
-    if isinstance(REDIS_CONNECTION, Redis):
+    if IS_TEST or isinstance(REDIS_CONNECTION, Redis):
         val = REDIS_CONNECTION.get(key)
         if type(val) is bytes:
             return val.decode()
@@ -72,6 +72,6 @@ def redis_set(key: str, val: str):
     :param val: Value
     :return: Success (bool)
     """
-    if isinstance(REDIS_CONNECTION, Redis):
+    if IS_TEST or isinstance(REDIS_CONNECTION, Redis):
         return REDIS_CONNECTION.set(key, val)
     return False

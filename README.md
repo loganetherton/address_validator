@@ -1,5 +1,11 @@
 # Address Validator
 
+This address validator is a simple application designed to showcase
+a prospective solution to submitting one or more CSV files,
+parsing each, attempting to validate each line as an address,
+and then outputting the validation results to `stdout` and,
+optionally, to an output CSV file.
+
 ## Deps
 
 ### Typer
