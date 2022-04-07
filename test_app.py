@@ -2,6 +2,7 @@ from pathlib import Path
 from datetime import datetime
 import json
 import responses
+from requests import Request
 import re
 
 from app import validate
@@ -26,7 +27,12 @@ class TestApp(object):
             raise Exception(f'Unable to find file {filename}')
         return input_file
 
-    def request_callback(self, request):
+    def request_callback(self, request: Request):
+        """
+        Return mock validated addresses, or invalid address statements
+        :param request:
+        :return:
+        """
         payload = request.params
         street_address, city, postal_code = payload['StreetAddress'], payload['City'], payload['PostalCode']
         formatted_input_address = f'{street_address}, {city}, {str(postal_code)}'
@@ -40,6 +46,10 @@ class TestApp(object):
         return (200, headers, json.dumps(res))
 
     def mock_responses(self):
+        """
+        Simply catch all GET requests and return expected responses based on request params
+        :return:
+        """
         responses.add_callback(
             responses.GET,
             re.compile(r'.*'),

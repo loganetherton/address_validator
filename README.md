@@ -4,6 +4,25 @@ This address validator is a simple application designed to showcase a prospectiv
 submitting one or more CSV files, parsing each, attempting to validate each line as an address,
 and then outputting the validation results to `stdout` and, optionally, to an output CSV file.
 
+The `Typer` library is used as a framework for the CLI interface. `Typer` makes use of
+type hinting to automate away most of the setup, `argv` parsing, and documentation of
+CLI applications. However, it does not, by default, handle `async` functions, as the
+decorators provided by `Typer` return a response as soon as execution of the wrapped function
+completes. To address this, an intermediary `async` function is wrapped in the outer
+function decorated by `Typer`.
+
+To address the issue of multiple addresses being validated during a single run, the
+[`asyncio.gather`](https://docs.python.org/3/library/asyncio-task.html#asyncio.gather) function 
+is used. This function accepts a list of async function called and pauses execution when 
+encountering an `await` statement until all `async` function calls in the list have completed,
+guaranteeing ordered responses and allowing for the ordering of output values, both to `stdout`
+and to an output CSV.
+
+The unit test suite covers the major error cases, such as missing CSV files, missing
+CSV headers, as well as the major success cases, such as successfully waiting for the rate
+limiting window to conclude and a new rate limiting batch to begin, successful caching,
+and successful new validation requests.
+
 ## Setup
 
 ### Environment Variables
