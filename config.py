@@ -18,7 +18,7 @@ RATE_LIMIT = int(getenv('RATE_LIMIT', '0'))
 RATE_LIMIT_SECONDS = int(getenv('RATE_LIMIT_SECONDS', 0))
 
 # Redis config
-REDIS_HOST = getenv('REDIS_HOST', 'localhost')
+REDIS_HOST = getenv('REDIS_HOST', 'redis')
 REDIS_PORT = int(getenv('REDIS_PORT', '6379'))
 REDIS_DB = int(getenv('REDIS_DB', '0'))
 # Assume connection failed after seconds, both for connection and querying

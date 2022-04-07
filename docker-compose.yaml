@@ -4,6 +4,8 @@ services:
   validator:
     build: .
     container_name: validator
+    depends_on:
+      - redis
     env_file:
       .env
     volumes:

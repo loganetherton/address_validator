@@ -46,16 +46,6 @@ class AddressValidator(object):
     async def make_request(self, street_address: str, city: str, postal_code: int):
         # Formatted input address for caching
         formatted_input_address = f'{street_address}, {city}, {str(postal_code)}'
-        # Return a mock response for tests
-        if IS_TEST:
-            # Cache input to MockRedis for examination
-            valid = formatted_input_address != '1 Empora St, Title, 11111'
-            test_res = {
-                'status': 'VALID' if valid else 'INVALID'
-            }
-            if valid:
-                test_res['formattedaddress'] = formatted_input_address
-            return test_res
         params = {
             'StreetAddress': street_address,
             'City': city,
@@ -69,8 +59,14 @@ class AddressValidator(object):
                 return res.json()
             except ValueError:
                 return 'Invalid Address'
+        raise Exception(f'Could not complete address validation for address: {formatted_input_address}')
 
     async def validate_row(self, row: list):
+        """
+        Async function which resolves on completion of validation request or lookup in cache
+        :param row: CSV row representing input address
+        :return: Validation response, either from API or cache
+        """
         street_address, city, postal_code = row
         postal_code = int(postal_code)
         formatted_input = f'{street_address}, {city}, {str(postal_code)}'
@@ -108,7 +104,7 @@ def get_all_files(filename: str = '') -> list[Path]:
     :return: A list of Paths representing CSV files
     """
     file = get_file(filename)
-    if file.suffix != '.csv':
+    if file.exists() and file.is_file() and file.suffix != '.csv':
         raise Exception(INVALID_INPUT_EXTENSION)
     files = []
     for dir_file in BASE_DIR.iterdir():
@@ -152,15 +148,15 @@ def handle_rate_limiting(is_rate_limited, rate_limit_remain: int, rate_limit_res
 
 
 @app.command()
-def validate(filename: str = '', output_filename: str = '', **kwargs):
+def validate(filename: str = '', output_filename: str = '', rate_limit: int = None, rate_limit_seconds: int = None):
     # Lazy import, probably wouldn't do this much in real life
     import csv
     if IS_TEST:
         global redis
         redis = connect_redis()
     # Remaining requests during rate limit period
-    rl_remain = kwargs['RATE_LIMIT'] if 'RATE_LIMIT' in kwargs else RATE_LIMIT
-    remain_seconds = kwargs['RATE_LIMIT_SECONDS'] if 'RATE_LIMIT_SECONDS' in kwargs else RATE_LIMIT_SECONDS
+    rl_remain = rate_limit if rate_limit else RATE_LIMIT
+    remain_seconds = rate_limit_seconds if rate_limit_seconds else RATE_LIMIT_SECONDS
     rl_reset = datetime.now() + timedelta(seconds=remain_seconds)
     # Addresses validated (for testing)
     res = []
@@ -170,6 +166,13 @@ def validate(filename: str = '', output_filename: str = '', **kwargs):
     writer = None
 
     async def handle_lines(input_file: Path, rate_limit_remain: int, rate_limit_reset: datetime):
+        """
+        Inner scoped async function to accommodate the CLI interface of Typer with async requests
+        :param input_file: Incoming CSV file Path
+        :param rate_limit_remain: Number of remaining requests in this rate limit period
+        :param rate_limit_reset: Datetime representing when the rate limit period will restart
+        :return:
+        """
         validator = AddressValidator()
         lines = []
         reader = csv.reader(input_file.open('r'), delimiter=',')
@@ -189,6 +192,7 @@ def validate(filename: str = '', output_filename: str = '', **kwargs):
         return await aiogather(*lines)
 
     validated_responses = []
+    # Handle each line in each file, waiting for async ops to complete
     for file in files:
         responses = aiorun(handle_lines(file, rl_remain, rl_reset))
         validated_responses += responses
